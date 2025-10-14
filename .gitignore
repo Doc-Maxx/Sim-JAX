@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# spyder config
+.spyproject/
+
+
 # Distribution / packaging
 .Python
 build/
