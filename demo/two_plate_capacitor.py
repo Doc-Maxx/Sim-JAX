@@ -34,7 +34,7 @@ def plot2D(x,y,p):  # define a function for visulizing 2d plot
 def laplace2d_jax2_cap_plate(V,dx,dy,BX, BY, l1norm_target):
     
     #pack the initial loop State
-    init = [V, jnp.zeros((nx,ny)) ,dx, dy, BX, BY, l1norm_target]
+    init = [V, jnp.zeros((NX,NY)) ,dx, dy, BX, BY, l1norm_target]
     
     def stepper(V, dx, dy, BX, BY):
         #steps Laplace solver :)
@@ -45,7 +45,7 @@ def laplace2d_jax2_cap_plate(V,dx,dy,BX, BY, l1norm_target):
         
         #jax.debug.print("{V}",V=V)
         V= jax.lax.dynamic_update_slice(V,plate1, (BX, BY))
-        V= jax.lax.dynamic_update_slice(V,plate2, (BX,ny- BY))
+        V= jax.lax.dynamic_update_slice(V,plate2, (BX,NY- BY))
         #jax.debug.print("{V}",V=V)
         V = V.at[0,:].set(0)  
         V = V.at[-1,:].set(0)
@@ -86,15 +86,16 @@ def laplace2d_jax2_cap_plate(V,dx,dy,BX, BY, l1norm_target):
                                 init)
     return result
 
-nx = 110
-ny = 101
-dx = 2 / (nx - 1)
-dy = 2 / (ny - 1)
+# Set up simulation parameters
+NX = 110
+NY = 101
+dx = 2 / (NX - 1)
+dy = 2 / (NY - 1)
 
-V = jnp.zeros((nx,ny))
+V = jnp.zeros((NX,NY))
 
-x = jnp.linspace(-10,10,nx)
-y = jnp.linspace(-10,10,ny)
+x = jnp.linspace(-10,10,NX)
+y = jnp.linspace(-10,10,NY)
 V = V.at[0,:].set(0)  
 V = V.at[-1,:].set(0)
 V = V.at[:,0].set(0)  
@@ -104,11 +105,11 @@ V = V.at[:,-2].set(V[:,-1])
 V = V.at[1,:].set(V[0,:])  
 V = V.at[-2,:].set(V[-1,:])
 
-BX = jnp.int32(nx/3)
-BY = jnp.int32(ny/3)
+BX = jnp.int32(NX/3)
+BY = jnp.int32(NY/3)
 
-plate1 = jnp.ones((nx-2*BX,1))
-plate2 = jnp.ones((nx-2*BX,1))*(-1)
+plate1 = jnp.ones((NX-2*BX,1))
+plate2 = jnp.ones((NX-2*BX,1))*(-1)
 
 V= jax.lax.dynamic_update_slice(V,plate1, (BX, BY))
 V= jax.lax.dynamic_update_slice(V,plate2, (BX, -BY-1))
