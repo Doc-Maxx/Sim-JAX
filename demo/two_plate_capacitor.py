@@ -10,15 +10,27 @@ Created on Tue Oct 14 07:04:18 2025
 This code reuses some code from Zhengtao Gan's online CFD course.
 
 The physical setup is from N. Giordano & H. Nakanishi, Computational Physics 2nd Ed.
+
+Here is a rough rendition of the geometry and boundary conditions
+     _______________ V=0 
+     |             |
+     |   |     |   |
+     |   |     |   |
+     |   V=1  V=-1 |
+     |   |     |   |
+     |   |     |   |
+     |_____________|
+     
+ On the exterior we the voltage is held at 0. On the left plate the voltage is
+ held at 1 and on the right plate the voltage is held at -1.
 '''
 
 
 import jax
 import jax.numpy as jnp
-from jax import jit
 
 from matplotlib import pyplot as plt, cm
-from mpl_toolkits.mplot3d import Axes3D
+
 
 def plot2D(x,y,p):  # define a function for visulizing 2d plot
     fig = plt.figure(figsize = (11,7), dpi=100)
