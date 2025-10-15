@@ -109,11 +109,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
             (pressure_copy[2:,1:-1] + pressure_copy[0:-2,1:-1]) * dx**2) /
             (2 * (dx**2 + dy**2))- dx**2 * dy**2 / (2 * (dx**2 + dy**2)) *
             velocity_dependent_part[1:-1,1:-1])
-        
-        #update boundary conditions
-        pressure =  pressure.at[:,-1].set(pressure[:,-2]) #no pressure change at outflow
-    
-        
+
         return pressure
     
     # Define loop init condition
@@ -154,7 +150,6 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
     return result[0]
 
 # Now we need to compute the velocity updates
-@jax.jit
 def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
@@ -171,9 +166,8 @@ def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, d
         (horizontal_velocity_copy[2:,1:-1] - 2 * horizontal_velocity_copy[1:-1,1:-1] +
          horizontal_velocity_copy[0:-2, 1:-1])))
         )
-    
     return horizontal_velocity
-@jax.jit
+
 def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
@@ -190,8 +184,7 @@ def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx
          vertical_velocity_copy[1:-1, 0:-2]) + dt / dy**2 *
         (vertical_velocity_copy[2:,1:-1] - 2 * vertical_velocity_copy[1:-1,1:-1] +
          vertical_velocity_copy[0:-2, 1:-1])))
-        )
-    
+        )    
     return vertical_velocity
 
 def main():
@@ -208,17 +201,42 @@ def main():
     
     # Initialize variable matricies 
     
-    pressure = jnp.zeros((NX,NY))
+    pressure = jnp.ones((NX,NY))
     horizontal_velocity = jnp.zeros((NX,NY))
     vertical_velocity = jnp.zeros((NX,NY))
     
-    # Boundary Conditions
+    # Boundary Conditions - No Slip
+    #Set inflow condition first
+    horizontal_velocity = horizontal_velocity.at[:,0].set(INFLOW_VELOCITY)
+    #No slip on pipe walls, calling after overrides the inflow BC 
+    horizontal_velocity = horizontal_velocity.at[0,:].set(0)
+    horizontal_velocity = horizontal_velocity.at[-1,:].set(0)
+    
+    vertical_velocity = vertical_velocity.at[0,:].set(0)
+    vertical_velocity = vertical_velocity.at[-1,:].set(0)
+    vertical_velocity = vertical_velocity.at[:,0].set(0)
+    vertical_velocity = vertical_velocity.at[:,-1].set(0)
+    
     
     for iteration_index in tqdm(range(N_ITERATIONS)):
         
         pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
+        
+        
         horizontal_velocity = horizonal_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
         vertical_velocity = vertical_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
+        
+        # Boundary Conditions - No Slip
+        #Set inflow condition first
+        horizontal_velocity = horizontal_velocity.at[:,0].set(INFLOW_VELOCITY)
+        #No slip on pipe walls, calling after overrides the inflow BC 
+        horizontal_velocity = horizontal_velocity.at[0,:].set(0)
+        horizontal_velocity = horizontal_velocity.at[-1,:].set(0)
+        
+        vertical_velocity = vertical_velocity.at[0,:].set(0)
+        vertical_velocity = vertical_velocity.at[-1,:].set(0)
+        vertical_velocity = vertical_velocity.at[:,0].set(0)
+        vertical_velocity = vertical_velocity.at[:,-1].set(0)
         
 if __name__=="__main__":
     main()
