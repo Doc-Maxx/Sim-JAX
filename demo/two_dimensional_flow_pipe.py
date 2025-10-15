@@ -61,7 +61,7 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 30_000
+N_ITERATIONS = 3_000
 REYNOLDS_NUMBER = 100
 
 NX = 50 
@@ -151,13 +151,12 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
                                 body,
                                 init)
     
-    return result
+    return result[0]
 
 # Now we need to compute the velocity updates
 def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
-    
     horizontal_velocity = horizontal_velocity.at[1:-1,1:-1].set(
         (horizontal_velocity_copy[1:-1,1:-1] - 
          horizontal_velocity_copy[1:-1,1:-1] * dt / dx * 
@@ -185,7 +184,7 @@ def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx
          vertical_velocity_copy[1:-1,1:-1] * dt / dy * 
          (vertical_velocity_copy[1:-1,1:-1] - vertical_velocity_copy[0:-2,1:-1]) -
          dt / (2 * rho * dx) * (pressure[2:, 1:-1] - pressure[0:-2,1:-1]) +
-         kinematic_viscosity * (dt / dx ** 2 *
+         kinematic_viscosity * (dt / dx** 2 *
         (vertical_velocity_copy[1:-1,2:] - 2 * vertical_velocity_copy[1:-1, 1:-1] +
          vertical_velocity_copy[1:-1, 0:-2]) + dt / dy**2 *
         (vertical_velocity_copy[2:,1:-1] - 2 * vertical_velocity_copy[1:-1,1:-1] +
