@@ -175,3 +175,23 @@ def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, d
         )
     
     return horizontal_velocity
+
+def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
+    horizontal_velocity_copy = horizontal_velocity.copy()
+    vertical_velocity_copy = vertical_velocity.copy()
+    
+    horizontal_velocity = horizontal_velocity.at[1:-1,1:-1].set(
+        (vertical_velocity_copy[1:-1,1:-1] - 
+         horizontal_velocity_copy[1:-1,1:-1] * dt / dx * 
+         (vertical_velocity_copy[1:-1,1:-1] - vertical_velocity_copy[1:-1, 0:-2]) -
+         vertical_velocity_copy[1:-1,1:-1] * dt / dy * 
+         (vertical_velocity_copy[1:-1,1:-1] - vertical_velocity_copy[0:-2,1:-1]) -
+         dt / (2 * rho * dx) * (pressure[2:, 1:-1] - pressure[0:-2,1:-1]) +
+         kinematic_viscosity * (dt / dx ** 2 *
+        (vertical_velocity_copy[1:-1,2:] - 2 * vertical_velocity_copy[1:-1, 1:-1] +
+         vertical_velocity_copy[1:-1, 0:-2]) + dt / dy**2 *
+        (vertical_velocity_copy[2:,1:-1] - 2 * vertical_velocity_copy[1:-1,1:-1] +
+         vertical_velocity_copy[0:-2, 1:-1])))
+        )
+    
+    return vertical_velocity
