@@ -61,18 +61,17 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 3_000
+N_ITERATIONS = 5
 REYNOLDS_NUMBER = 100
 
-NX = 50 
-NY = 30
+NX = 5 
+NY = 3
 DT = 0.001
 
 LENGTH = 5
 RADIUS = 1
 
-NORM_TARGET = 1e-8
-
+NORM_TARGET = 1e-2
 RHO = 1
 
 INFLOW_VELOCITY = 0.04
@@ -221,7 +220,6 @@ def main():
     for iteration_index in tqdm(range(N_ITERATIONS)):
         
         pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
-        
         
         horizontal_velocity = horizonal_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
         vertical_velocity = vertical_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
