@@ -111,15 +111,13 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
             velocity_dependent_part[1:-1,1:-1])
         
         #update boundary conditions
-        pressure[:,-1] = pressure[:,-2] #no pressure change at outflow
-        pressure[:,0] = pressure[:,1] #no pressure change at inflow
-        pressure[0,:] = 0
-        pressure[-1,:] = 0
+        pressure =  pressure.at[:,-1].set(pressure[:,-2]) #no pressure change at outflow
+    
         
         return pressure
     
     # Define loop init condition
-    init = [pressure, pressure*0, horizontal_velocity, vertical_velocity,
+    init = [pressure, pressure*0, horizontal_velocity, vertical_velocity, rho,
             dt, dx, dy, get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure*0),
             norm_target]
     
