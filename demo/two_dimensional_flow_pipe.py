@@ -204,7 +204,23 @@ def main():
     x = jnp.arange(NX)
     y = jnp.arange(NY)
     X, Y = jnp.meshgrid(x, y, indexing='ij')
+
+    dx = 2 / (NX - 1)
+    dy = 2 / (NY - 1)
+    
+    # Initialize variable matricies 
     
     pressure = jnp.zeros((NX,NY))
+    horizontal_velocity = jnp.zeros((NX,NY))
+    vertical_velocity = jnp.zeros((NX,NY))
+    
+    # Boundary Conditions
     
     for iteration_index in tqdm(range(N_ITERATIONS)):
+        
+        pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
+        horizontal_velocity = horizonal_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
+        vertical_velocity = vertical_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
+        
+if __name__=="__main__":
+    main()
