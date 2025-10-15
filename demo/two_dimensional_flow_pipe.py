@@ -61,20 +61,21 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 2
+N_ITERATIONS = 20
 REYNOLDS_NUMBER = 100
 
-NX = 30 
+NX = 10 
 NY = 10
-DT = 0.001
+DT = 0.1
 
-LENGTH = 1
+LENGTH = 5
 RADIUS = 0.2
 
-NORM_TARGET = 1e-2
+NORM_TARGET = 1e-16
 RHO = 1
 
-INFLOW_VELOCITY = 1
+INFLOW_VELOCITY = 0.5
+INLET_PRESSURE = 1
 PLOT_EVERY_N_STEPS = 100
 PLOT_STEP_SKIP = 1000
 
@@ -108,12 +109,14 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
             (pressure_copy[2:,1:-1] + pressure_copy[0:-2,1:-1]) * dx**2) /
             (2 * (dx**2 + dy**2))- dx**2 * dy**2 / (2 * (dx**2 + dy**2)) *
             velocity_dependent_part[1:-1,1:-1])
+        #set inlet pressure
+        pressure = pressure.at[:,0].set(INLET_PRESSURE)
         
         return pressure
     
     # Define loop init condition
-    init = [pressure, pressure*0, horizontal_velocity, vertical_velocity, rho,
-            dt, dx, dy, get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure*0),
+    init = [pressure, pressure, horizontal_velocity, vertical_velocity, rho,
+            dt, dx, dy, get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure),
             norm_target]
     
     # We are setting up a JAX while loop, so we'll need a condition and body function
@@ -206,6 +209,9 @@ def main():
     horizontal_velocity = jnp.zeros((NX,NY))
     vertical_velocity = jnp.zeros((NX,NY))
     
+    #set inlet pressure
+    pressure = pressure.at[:,0].set(INLET_PRESSURE)
+    
     # Boundary Conditions - No Slip
     #Set inflow condition first
     horizontal_velocity = horizontal_velocity.at[:,0].set(INFLOW_VELOCITY)
@@ -217,8 +223,6 @@ def main():
     vertical_velocity = vertical_velocity.at[-1,:].set(0)
     vertical_velocity = vertical_velocity.at[:,0].set(0)
     
-    print(horizontal_velocity)
-    
     for iteration_index in tqdm(range(N_ITERATIONS)):
         
         pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
@@ -229,7 +233,6 @@ def main():
         # Boundary Conditions - No Slip
         #Set inflow condition first
         horizontal_velocity = horizontal_velocity.at[:,0].set(INFLOW_VELOCITY)
-        jax.debug.print("{x}", x = horizontal_velocity)
         #No slip on pipe walls, calling after overrides the inflow BC 
         horizontal_velocity = horizontal_velocity.at[0,:].set(0)
         horizontal_velocity = horizontal_velocity.at[-1,:].set(0)
@@ -251,9 +254,9 @@ def main():
     plt.clabel(contour, inline=False, fontsize=12, colors = 'black')
     
     # Quiver plot for velocity field
-    quiv = plt.quiver(X[::2, ::2], Y[::2, ::2], 
-                      horizontal_velocity[::2, ::2], 
-                      vertical_velocity[::2, ::2]) 
+    quiv = plt.quiver(X[::4, ::4], Y[::4, ::4], 
+                      vertical_velocity[::4, ::4], 
+                      horizontal_velocity[::4, ::4]) 
     
     # Setting labels for the x and y axes
     plt.xlabel('X', fontsize=12)
