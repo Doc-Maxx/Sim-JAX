@@ -154,3 +154,24 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
                                 init)
     
     return result
+
+# Now we need to compute the velocity updates
+def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
+    horizontal_velocity_copy = horizontal_velocity.copy()
+    vertical_velocity_copy = vertical_velocity.copy()
+    
+    horizontal_velocity = horizontal_velocity.at[1:-1,1:-1].set(
+        (horizontal_velocity_copy[1:-1,1:-1] - 
+         horizontal_velocity_copy[1:-1,1:-1] * dt / dx * 
+         (horizontal_velocity_copy[1:-1,1:-1] - horizontal_velocity_copy[1:-1, 0:-2]) -
+         vertical_velocity_copy[1:-1,1:-1] * dt / dy * 
+         (horizontal_velocity_copy[1:-1,1:-1] - horizontal_velocity_copy[0:-2,1:-1]) -
+         dt / (2 * rho * dx) * (pressure[1:-1, 2:] - pressure[1:-1,0:-2]) +
+         kinematic_viscosity * (dt / dx ** 2 *
+        (horizontal_velocity_copy[1:-1,2:] - 2 * horizontal_velocity_copy[1:-1, 1:-1] +
+         horizontal_velocity_copy[1:-1, 0:-2]) + dt / dy**2 *
+        (horizontal_velocity_copy[2:,1:-1] - 2 * horizontal_velocity_copy[1:-1,1:-1] +
+         horizontal_velocity_copy[0:-2, 1:-1])))
+        )
+    
+    return horizontal_velocity
