@@ -88,10 +88,7 @@ def get_kinematic_viscosity(velocity, radius, reynolds_number):
 def pressure_solver(pressure, horizontal_velocity, vertical_velocity, 
                     rho, dt, dx, dy, norm_target):
     
-    # Define loop init condition
-    init = [pressure, pressure*0, horizontal_velocity, vertical_velocity,
-            dt, dx, dy, get_velocity_dependent_part, norm_target]
-    
+    # We will define the following functions to compute the updated pressure
     # First we'll compute velocity dependent part of the pressure equation
     def get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part):
         velocity_dependent_part = velocity_dependent_part.at[1:-1,1:-1].set(
@@ -119,8 +116,12 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         pressure[0,:] = 0
         pressure[-1,:] = 0
         
-    # Now for the remaining portion of the pressure calculation
-        pressure_copy = pressure.copy()
+        return pressure
+    
+    # Define loop init condition
+    init = [pressure, pressure*0, horizontal_velocity, vertical_velocity,
+            dt, dx, dy, get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure*0),
+            norm_target]
     
     # We are setting up a JAX while loop, so we'll need a condition and body function
     def condition(loop_state):
@@ -143,9 +144,13 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         #unpack loop_state
         pressure, pressure_copy, horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part, norm_target = loop_state
         # compute pressure update
-        pressure = get_pressure()
-    
+        pressure = get_pressure_update(pressure, dx, dy, velocity_dependent_part)
+        # repack loop_state
+        loop_state = [pressure, pressure_copy, horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part, norm_target]
+        return loop_state
     # Loop pressure steps until pressure has relaxed to desired degree
     result = jax.lax.while_loop(condition,
                                 body,
                                 init)
+    
+    return result
