@@ -154,6 +154,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
     return result[0]
 
 # Now we need to compute the velocity updates
+@jax.jit
 def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
@@ -172,7 +173,7 @@ def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, d
         )
     
     return horizontal_velocity
-
+@jax.jit
 def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
