@@ -61,20 +61,20 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 50
+N_ITERATIONS = 2
 REYNOLDS_NUMBER = 100
 
-NX = 50 
-NY = 30
+NX = 30 
+NY = 10
 DT = 0.001
 
-LENGTH = 5
-RADIUS = 1
+LENGTH = 1
+RADIUS = 0.2
 
 NORM_TARGET = 1e-2
 RHO = 1
 
-INFLOW_VELOCITY = 0.04
+INFLOW_VELOCITY = 1
 PLOT_EVERY_N_STEPS = 100
 PLOT_STEP_SKIP = 1000
 
@@ -173,7 +173,7 @@ def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
     
-    horizontal_velocity = horizontal_velocity.at[1:-1,1:-1].set(
+    vertical_velocity = vertical_velocity.at[1:-1,1:-1].set(
         (vertical_velocity_copy[1:-1,1:-1] - 
          horizontal_velocity_copy[1:-1,1:-1] * dt / dx * 
          (vertical_velocity_copy[1:-1,1:-1] - vertical_velocity_copy[1:-1, 0:-2]) -
@@ -216,8 +216,8 @@ def main():
     vertical_velocity = vertical_velocity.at[0,:].set(0)
     vertical_velocity = vertical_velocity.at[-1,:].set(0)
     vertical_velocity = vertical_velocity.at[:,0].set(0)
-    vertical_velocity = vertical_velocity.at[:,-1].set(0)
     
+    print(horizontal_velocity)
     
     for iteration_index in tqdm(range(N_ITERATIONS)):
         
@@ -229,6 +229,7 @@ def main():
         # Boundary Conditions - No Slip
         #Set inflow condition first
         horizontal_velocity = horizontal_velocity.at[:,0].set(INFLOW_VELOCITY)
+        jax.debug.print("{x}", x = horizontal_velocity)
         #No slip on pipe walls, calling after overrides the inflow BC 
         horizontal_velocity = horizontal_velocity.at[0,:].set(0)
         horizontal_velocity = horizontal_velocity.at[-1,:].set(0)
