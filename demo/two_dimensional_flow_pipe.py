@@ -89,11 +89,11 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
                     rho, dt, dx, dy, norm_target):
     
     # Define loop init condition
-    init = [pressure, pressure.copy()*0, horizontal_velocity, vertical_velocity,
-            dt, dx, dy, pressure.copy()*0, norm_target]
+    init = [pressure, pressure*0, horizontal_velocity, vertical_velocity,
+            dt, dx, dy, get_velocity_dependent_part, norm_target]
     
     # First we'll compute velocity dependent part of the pressure equation
-    def get_velocity_depdent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part):
+    def get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part):
         velocity_dependent_part = velocity_dependent_part.at[1:-1,1:-1].set(
             rho * (1 / dt * ((horizontal_velocity[1:-1,2:] - horizontal_velocity[1:-1,0:-2]) / (2 * dx) 
                               + (vertical_velocity[2:,1:-1] - vertical_velocity[0:-2, 1:-1]) / (2 * dy)) 
@@ -104,11 +104,23 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
             )
         return velocity_dependent_part
     
-    def get_pressure(pressure, dx, dy, velocity_dependent_part, norm_target):
+    def get_pressure_update(pressure, dx, dy, velocity_dependent_part):
+        pressure_copy = pressure.copy()
+        # Solve poisson's equation
+        pressure = pressure.at[1:-1,1:-1].set((
+            (pressure_copy[1:-1,2:] + pressure_copy[1:-1, 0:-2]) * dy**2 +
+            (pressure_copy[2:,1:-1] + pressure_copy[0:-2,1:-1]) * dx**2) /
+            (2 * (dx**2 + dy**2))- dx**2 * dy**2 / (2 * (dx**2 + dy**2)) *
+            velocity_dependent_part[1:-1,1:-1])
         
-    
+        #update boundary conditions
+        pressure[:,-1] = pressure[:,-2] #no pressure change at outflow
+        pressure[:,0] = pressure[:,1] #no pressure change at inflow
+        pressure[0,:] = 0
+        pressure[-1,:] = 0
+        
     # Now for the remaining portion of the pressure calculation
-    pressure_copy = pressure.copy()
+        pressure_copy = pressure.copy()
     
     # We are setting up a JAX while loop, so we'll need a condition and body function
     def condition(loop_state):
@@ -130,9 +142,6 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
     def body(loop_state):
         #unpack loop_state
         pressure, pressure_copy, horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part, norm_target = loop_state
-        # compute velocity dependent part of the pressure
-        velocity_dependent_part = get_velocity_depdent_part(horizontal_velocity,
-                                                            vertical_velocity, rho, dt, dx, dy, velocity_dependent_part)
         # compute pressure update
         pressure = get_pressure()
     
