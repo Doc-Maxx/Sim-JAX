@@ -131,9 +131,9 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         l1norm_target = loop_state[-1]
         
         ''' 
-        Compute "norm" to compare the new voltage matrix to the previous one
+        Compute "norm" to compare the new pressure matrix to the previous one
         This solver uses a relaxational method. Each step makes finer adjustments
-        to the voltage distribution. Once we reach an abritrarily small difference
+        to the pressure field. Once we reach an abritrarily small difference
         between each step, we send the signal to terminate the loop.
         '''
         norm = (jnp.sum(jnp.abs(pressure[:])-jnp.abs(pressure_copy[:])) / jnp.sum(jnp.abs(pressure_copy[:])))
