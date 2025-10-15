@@ -195,3 +195,16 @@ def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx
         )
     
     return vertical_velocity
+
+def main():
+    jax.config.update("jax_enable_x64", True)
+    
+    kinematic_viscosity = get_kinematic_viscosity(INFLOW_VELOCITY, RADIUS, REYNOLDS_NUMBER)
+    
+    x = jnp.arange(NX)
+    y = jnp.arange(NY)
+    X, Y = jnp.meshgrid(x, y, indexing='ij')
+    
+    pressure = jnp.zeros((NX,NY))
+    
+    for iteration_index in tqdm(range(N_ITERATIONS)):
