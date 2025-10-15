@@ -61,11 +61,11 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 5
+N_ITERATIONS = 50
 REYNOLDS_NUMBER = 100
 
-NX = 5 
-NY = 3
+NX = 50 
+NY = 30
 DT = 0.001
 
 LENGTH = 5
@@ -108,7 +108,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
             (pressure_copy[2:,1:-1] + pressure_copy[0:-2,1:-1]) * dx**2) /
             (2 * (dx**2 + dy**2))- dx**2 * dy**2 / (2 * (dx**2 + dy**2)) *
             velocity_dependent_part[1:-1,1:-1])
-
+        
         return pressure
     
     # Define loop init condition
@@ -129,7 +129,8 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         to the pressure field. Once we reach an abritrarily small difference
         between each step, we send the signal to terminate the loop.
         '''
-        norm = (jnp.sum(jnp.abs(pressure[:])-jnp.abs(pressure_copy[:])) / jnp.sum(jnp.abs(pressure_copy[:])))
+        norm = (jnp.sum(jnp.abs(pressure[:])-jnp.abs(pressure_copy[:])) / (jnp.sum(jnp.abs(pressure_copy[:]))+1e-8 ))
+        jax.debug.print("{x}", x=norm)
         return norm > l1norm_target
     
     
@@ -142,10 +143,11 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         loop_state = [pressure, pressure_copy, horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part, norm_target]
         return loop_state
     # Loop pressure steps until pressure has relaxed to desired degree
+    # result has the same structure of loop_state
     result = jax.lax.while_loop(condition,
                                 body,
                                 init)
-    
+    # returning only the pressure.
     return result[0]
 
 # Now we need to compute the velocity updates
@@ -200,7 +202,7 @@ def main():
     
     # Initialize variable matricies 
     
-    pressure = jnp.ones((NX,NY))
+    pressure = jnp.zeros((NX,NY))
     horizontal_velocity = jnp.zeros((NX,NY))
     vertical_velocity = jnp.zeros((NX,NY))
     
