@@ -130,7 +130,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         between each step, we send the signal to terminate the loop.
         '''
         norm = (jnp.sum(jnp.abs(pressure[:])-jnp.abs(pressure_copy[:])) / (jnp.sum(jnp.abs(pressure_copy[:]))+1e-8 ))
-        jax.debug.print("{x}", x=norm)
+        #jax.debug.print("{x}", x=norm)
         return norm > l1norm_target
     
     
@@ -237,6 +237,32 @@ def main():
         vertical_velocity = vertical_velocity.at[-1,:].set(0)
         vertical_velocity = vertical_velocity.at[:,0].set(0)
         vertical_velocity = vertical_velocity.at[:,-1].set(0)
+        
+    # Create figure and set dpi and figure size
+    fig = plt.figure(figsize=(11,7), dpi=100)
+    
+    # Contourf plot for pressure field with colorbar
+    cf = plt.contourf(X, Y, pressure, alpha=0.5, cmap='turbo', levels=20)
+    plt.colorbar(cf, label='Pressure')
+    
+    # Contour plot for pressure field outlines
+    contour = plt.contour(X, Y, pressure, cmap='turbo', levels=10)
+    plt.clabel(contour, inline=False, fontsize=12, colors = 'black')
+    
+    # Quiver plot for velocity field
+    quiv = plt.quiver(X[::2, ::2], Y[::2, ::2], 
+                      horizontal_velocity[::2, ::2], 
+                      vertical_velocity[::2, ::2]) 
+    
+    # Setting labels for the x and y axes
+    plt.xlabel('X', fontsize=12)
+    plt.ylabel('Y', fontsize=12)
+    
+    # Setting the title for the plot
+    plt.title('Pressure and Velocity fields', fontsize=14)
+    
+    # Display the plot
+    plt.show()
         
 if __name__=="__main__":
     main()
