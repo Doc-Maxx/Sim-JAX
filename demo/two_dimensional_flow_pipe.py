@@ -61,20 +61,20 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 20
+N_ITERATIONS = 200
 REYNOLDS_NUMBER = 100
 
-NX = 10 
-NY = 10
-DT = 0.1
+NX = 30 
+NY = 100
+DT = 0.001
 
 LENGTH = 5
-RADIUS = 0.2
+RADIUS = 0.5
 
-NORM_TARGET = 1e-16
+NORM_TARGET = 1e-12
 RHO = 1
 
-INFLOW_VELOCITY = 0.5
+INFLOW_VELOCITY = 1
 INLET_PRESSURE = 1
 PLOT_EVERY_N_STEPS = 100
 PLOT_STEP_SKIP = 1000
@@ -110,12 +110,12 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
             (2 * (dx**2 + dy**2))- dx**2 * dy**2 / (2 * (dx**2 + dy**2)) *
             velocity_dependent_part[1:-1,1:-1])
         #set inlet pressure
-        pressure = pressure.at[:,0].set(INLET_PRESSURE)
-        
-        return pressure
+        #pressure = pressure.at[:,0].set(INLET_PRESSURE)
+        #jax.debug.print("{x}", x =  pressure )
+        return pressure, pressure_copy
     
     # Define loop init condition
-    init = [pressure, pressure, horizontal_velocity, vertical_velocity, rho,
+    init = [pressure, pressure*0.1, horizontal_velocity, vertical_velocity, rho,
             dt, dx, dy, get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure),
             norm_target]
     
@@ -128,11 +128,11 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         
         ''' 
         Compute "norm" to compare the new pressure matrix to the previous one
-        This solver uses a relaxational method. Each step makes finer adjustments
+        This solver uses a relaxational method. Each step makes finer adjustments|
         to the pressure field. Once we reach an abritrarily small difference
         between each step, we send the signal to terminate the loop.
         '''
-        norm = (jnp.sum(jnp.abs(pressure[:])-jnp.abs(pressure_copy[:])) / (jnp.sum(jnp.abs(pressure_copy[:]))+1e-8 ))
+        norm = (jnp.sum(jnp.abs(pressure[:]-pressure_copy[:])) / (jnp.sum(jnp.abs(pressure_copy[:]))+1e-8 ))
         #jax.debug.print("{x}", x=norm)
         return norm > l1norm_target
     
@@ -141,7 +141,8 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         #unpack loop_state
         pressure, pressure_copy, horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part, norm_target = loop_state
         # compute pressure update
-        pressure = get_pressure_update(pressure, dx, dy, velocity_dependent_part)
+        pressure, pressure_copy = get_pressure_update(pressure, dx, dy, velocity_dependent_part)
+        #jax.debug.print("Pressure body loop : {x}", x =  pressure )
         # repack loop_state
         loop_state = [pressure, pressure_copy, horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part, norm_target]
         return loop_state
@@ -205,12 +206,12 @@ def main():
     
     # Initialize variable matricies 
     
-    pressure = jnp.zeros((NX,NY))
+    pressure = jnp.ones((NX,NY))
     horizontal_velocity = jnp.zeros((NX,NY))
     vertical_velocity = jnp.zeros((NX,NY))
     
     #set inlet pressure
-    pressure = pressure.at[:,0].set(INLET_PRESSURE)
+    #pressure = pressure.at[:,0].set(INLET_PRESSURE)
     
     # Boundary Conditions - No Slip
     #Set inflow condition first
@@ -246,7 +247,7 @@ def main():
     fig = plt.figure(figsize=(11,7), dpi=100)
     
     # Contourf plot for pressure field with colorbar
-    cf = plt.contourf(X, Y, pressure, alpha=0.5, cmap='turbo', levels=20)
+    cf = plt.contourf(X, Y, pressure, alpha=0.5, cmap='turbo', levels=10)
     plt.colorbar(cf, label='Pressure')
     
     # Contour plot for pressure field outlines
@@ -254,9 +255,9 @@ def main():
     plt.clabel(contour, inline=False, fontsize=12, colors = 'black')
     
     # Quiver plot for velocity field
-    quiv = plt.quiver(X[::4, ::4], Y[::4, ::4], 
-                      vertical_velocity[::4, ::4], 
-                      horizontal_velocity[::4, ::4]) 
+    quiv = plt.quiver(X[::2, ::2], Y[::2, ::2], 
+                      vertical_velocity[::2, ::2], 
+                      horizontal_velocity[::2, ::2]) 
     
     # Setting labels for the x and y axes
     plt.xlabel('X', fontsize=12)
