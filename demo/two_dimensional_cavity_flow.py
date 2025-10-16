@@ -69,7 +69,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         return pressure, pressure_copy
     
     # Define loop init condition
-    init = [pressure, pressure*0.9, horizontal_velocity, vertical_velocity, rho,
+    init = [pressure, pressure, horizontal_velocity, vertical_velocity, rho,
             dt, dx, dy, get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure),
             norm_target]
     
@@ -149,7 +149,7 @@ def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx
 def main():
     jax.config.update("jax_enable_x64", True)
     
-    kinematic_viscosity = get_kinematic_viscosity(INFLOW_VELOCITY, RADIUS, REYNOLDS_NUMBER)
+    kinematic_viscosity = 0.01
     
     x = jnp.arange(NX)
     y = jnp.arange(NY)
@@ -170,7 +170,6 @@ def main():
     pressure = pressure.at[:,0].set(pressure[:, 1])   # dp/dx = 0 at x = 0
     pressure = pressure.at[-1,:].set(0)        # p = 0 at y = 2
     
-       
     horizontal_velocity = horizontal_velocity.at[0, :].set(0)
     horizontal_velocity = horizontal_velocity.at[:, 0].set(0)
     horizontal_velocity = horizontal_velocity.at[:, -1].set(0)
@@ -180,9 +179,10 @@ def main():
     vertical_velocity = vertical_velocity.at[:, 0].set(0)
     vertical_velocity = vertical_velocity.at[:, -1].set(0)
     
+    pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
+    
     for iteration_index in tqdm(range(N_ITERATIONS)):
         
-        pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
         
         horizontal_velocity = horizonal_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
         vertical_velocity = vertical_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
@@ -197,6 +197,7 @@ def main():
         vertical_velocity = vertical_velocity.at[:, 0].set(0)
         vertical_velocity = vertical_velocity.at[:, -1].set(0)
         
+        pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
         
         
     # Create figure and set dpi and figure size
