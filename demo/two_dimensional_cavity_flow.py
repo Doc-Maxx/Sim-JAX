@@ -1,59 +1,11 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Wed Oct 15 05:44:35 2025
-
 @author: Doc-Maxx
+
+This code will simulate two dimensional flow in a cavity.
+
+The initial and boundary conditions are from Zhengtao Gan's online CFD course.
+The results from that will be used to validate the results here.
 """
-
-"""
-Here we will simulate a two dimensional flow.
-
-The flow will be incompressible. 
-
-Each velocity component will be solved using a finite difference method.
-The pressure, which maintains the incompressibility of the fluid will be solved
-each time step using a relaxational method.
-
-The calculation will proceed like this:
-    1. Set up the initial conditions and boundary conditions
-    2. Update the pressure with a relaxational solver
-    3. Update each velocity component
-    4. Enforce boundary conditions
-    5. Repeat 2-4 for every time-step
-    
-Here is depiction of the geometry of our flow:
-            Wall with no flow.
-        +-------------------------------------------------+
-        |  --->                                           |     
-        |                                                 |
-        |  --->                                           |
-Inflow  |                                                 | Outflow
-        |  --->                                           |
-        |                                                 |
-        |  --->                                           |
-        |                                                 |
-        |  --->                                           |
-        +-------------------------------------------------+
-            Wall with no flow.
-            
-We expect our steady state solution to form a parabolic velocity curve.
-Something similiar to this:
-
-        +-------------------------------------------------+
-        |  --->                         >                 |     
-        |                               ->                |
-        |  --->                         -->               |
-Inflow  |                                                 | Outflow
-        |  --->                         ----->            |
-        |                                                 |
-        |  --->                         -->               |
-        |                               ->                |
-        |  --->                         >                 |
-        +-------------------------------------------------+
-           
-"""
-
 import jax
 import jax.numpy as jnp
 from matplotlib import pyplot as plt, cm
@@ -61,21 +13,20 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 25
+N_ITERATIONS = 500
 REYNOLDS_NUMBER = 100
 
-NX = 80 
-NY = 80
-DT = 0.01
+NX = 41 
+NY = 41
+DT = 0.001
 
-LENGTH = 5
-RADIUS = 0.5
+LENGTH = 1
+RADIUS = 1
 
-NORM_TARGET = 1e-24
+NORM_TARGET = 1e-8
 RHO = 1
 
-INFLOW_VELOCITY = 1
-INLET_PRESSURE = 1
+C = 1
 PLOT_EVERY_N_STEPS = 100
 PLOT_STEP_SKIP = 1000
 
@@ -110,7 +61,10 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
             (2 * (dx**2 + dy**2))- dx**2 * dy**2 / (2 * (dx**2 + dy**2)) *
             velocity_dependent_part[1:-1,1:-1])
         #set inlet pressure
-        pressure = pressure.at[:,0].set(INLET_PRESSURE)
+        pressure = pressure.at[:, -1].set(pressure[:, -2]) # dp/dx = 0 at x = 2
+        pressure = pressure.at[0,:].set(pressure[1, :])   # dp/dy = 0 at y = 0
+        pressure = pressure.at[:,0].set(pressure[:, 1])   # dp/dx = 0 at x = 0
+        pressure = pressure.at[-1,:].set(0)        # p = 0 at y = 2
         #jax.debug.print("{x}", x =  pressure )
         return pressure, pressure_copy
     
@@ -206,23 +160,25 @@ def main():
     
     # Initialize variable matricies 
     
-    pressure = jnp.ones((NX,NY))
+    pressure = jnp.zeros((NX,NY))
     horizontal_velocity = jnp.zeros((NX,NY))
     vertical_velocity = jnp.zeros((NX,NY))
     
     #set inlet pressure
-    pressure = pressure.at[:,0].set(INLET_PRESSURE)
+    pressure = pressure.at[:, -1].set(pressure[:, -2]) # dp/dx = 0 at x = 2
+    pressure = pressure.at[0,:].set(pressure[1, :])   # dp/dy = 0 at y = 0
+    pressure = pressure.at[:,0].set(pressure[:, 1])   # dp/dx = 0 at x = 0
+    pressure = pressure.at[-1,:].set(0)        # p = 0 at y = 2
     
-    # Boundary Conditions - No Slip
-    #Set inflow condition first
-    horizontal_velocity = horizontal_velocity.at[:,0].set(INFLOW_VELOCITY)
-    #No slip on pipe walls, calling after overrides the inflow BC 
-    horizontal_velocity = horizontal_velocity.at[0,:].set(0)
-    horizontal_velocity = horizontal_velocity.at[-1,:].set(0)
-    
-    vertical_velocity = vertical_velocity.at[0,:].set(0)
-    vertical_velocity = vertical_velocity.at[-1,:].set(0)
-    vertical_velocity = vertical_velocity.at[:,0].set(0)
+       
+    horizontal_velocity = horizontal_velocity.at[0, :].set(0)
+    horizontal_velocity = horizontal_velocity.at[:, 0].set(0)
+    horizontal_velocity = horizontal_velocity.at[:, -1].set(0)
+    horizontal_velocity = horizontal_velocity.at[-1, :].set(C)    # set velocity on cavity lid equal to C
+    vertical_velocity = vertical_velocity.at[0, :].set(0)
+    vertical_velocity = vertical_velocity.at[-1, :].set(0)
+    vertical_velocity = vertical_velocity.at[:, 0].set(0)
+    vertical_velocity = vertical_velocity.at[:, -1].set(0)
     
     for iteration_index in tqdm(range(N_ITERATIONS)):
         
@@ -231,17 +187,17 @@ def main():
         horizontal_velocity = horizonal_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
         vertical_velocity = vertical_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
         
-        # Boundary Conditions - No Slip
-        #Set inflow condition first
-        horizontal_velocity = horizontal_velocity.at[:,0].set(INFLOW_VELOCITY)
-        #No slip on pipe walls, calling after overrides the inflow BC 
-        horizontal_velocity = horizontal_velocity.at[0,:].set(0)
-        horizontal_velocity = horizontal_velocity.at[-1,:].set(0)
+        # Boundary Conditions
+        horizontal_velocity = horizontal_velocity.at[0, :].set(0)
+        horizontal_velocity = horizontal_velocity.at[:, 0].set(0)
+        horizontal_velocity = horizontal_velocity.at[:, -1].set(0)
+        horizontal_velocity = horizontal_velocity.at[-1, :].set(C)    # set velocity on cavity lid equal to C
+        vertical_velocity = vertical_velocity.at[0, :].set(0)
+        vertical_velocity = vertical_velocity.at[-1, :].set(0)
+        vertical_velocity = vertical_velocity.at[:, 0].set(0)
+        vertical_velocity = vertical_velocity.at[:, -1].set(0)
         
-        vertical_velocity = vertical_velocity.at[0,:].set(0)
-        vertical_velocity = vertical_velocity.at[-1,:].set(0)
-        vertical_velocity = vertical_velocity.at[:,0].set(0)
-        vertical_velocity = vertical_velocity.at[:,-1].set(0)
+        
         
     # Create figure and set dpi and figure size
     fig = plt.figure(figsize=(11,7), dpi=100)
