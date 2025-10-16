@@ -56,22 +56,22 @@ Inflow  |                                                 | Outflow
 
 import jax
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt, cm
 import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 200
+N_ITERATIONS = 100
 REYNOLDS_NUMBER = 100
 
-NX = 30 
-NY = 100
-DT = 0.001
+NX = 80 
+NY = 80
+DT = 0.01
 
 LENGTH = 5
 RADIUS = 0.5
 
-NORM_TARGET = 1e-12
+NORM_TARGET = 1e-15
 RHO = 1
 
 INFLOW_VELOCITY = 1
@@ -110,12 +110,12 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
             (2 * (dx**2 + dy**2))- dx**2 * dy**2 / (2 * (dx**2 + dy**2)) *
             velocity_dependent_part[1:-1,1:-1])
         #set inlet pressure
-        #pressure = pressure.at[:,0].set(INLET_PRESSURE)
+        pressure = pressure.at[:,0].set(INLET_PRESSURE)
         #jax.debug.print("{x}", x =  pressure )
         return pressure, pressure_copy
     
     # Define loop init condition
-    init = [pressure, pressure*0.1, horizontal_velocity, vertical_velocity, rho,
+    init = [pressure, pressure*0.9, horizontal_velocity, vertical_velocity, rho,
             dt, dx, dy, get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure),
             norm_target]
     
@@ -211,7 +211,7 @@ def main():
     vertical_velocity = jnp.zeros((NX,NY))
     
     #set inlet pressure
-    #pressure = pressure.at[:,0].set(INLET_PRESSURE)
+    pressure = pressure.at[:,0].set(INLET_PRESSURE)
     
     # Boundary Conditions - No Slip
     #Set inflow condition first
@@ -268,6 +268,6 @@ def main():
     
     # Display the plot
     plt.show()
-        
+            
 if __name__=="__main__":
     main()
