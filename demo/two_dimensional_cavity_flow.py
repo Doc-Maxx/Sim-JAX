@@ -20,10 +20,10 @@ NX = 41
 NY = 41
 DT = 0.001
 
-LENGTH = 1
-RADIUS = 1
+LENGTH = 2
+RADIUS = 2
 
-NORM_TARGET = 1e-6
+NORM_TARGET = 1e-8
 RHO = 1
 
 C = 1
@@ -95,6 +95,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         pressure, pressure_copy, horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part, norm_target = loop_state
         # compute pressure update
         velocity_dependent_part = get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part)
+        jax.debug.print("{x}", x = velocity_dependent_part)
         pressure, pressure_copy = get_pressure_update(pressure, dx, dy, velocity_dependent_part)
         #jax.debug.print("Pressure body loop : {x}", x =  pressure )
         # repack loop_state
