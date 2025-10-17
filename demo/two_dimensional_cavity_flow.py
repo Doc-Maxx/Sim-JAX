@@ -13,7 +13,7 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 200
+N_ITERATIONS = 500
 REYNOLDS_NUMBER = 100
 
 NX = 41 
@@ -23,7 +23,7 @@ DT = 0.001
 LENGTH = 1
 RADIUS = 1
 
-NORM_TARGET = 1e-8
+NORM_TARGET = 1e-6
 RHO = 1
 
 C = 1
@@ -151,12 +151,13 @@ def main():
     
     kinematic_viscosity = 0.01
     
-    x = jnp.arange(NX)
-    y = jnp.arange(NY)
+    x = jnp.linspace(0, LENGTH, NX)
+    y = jnp.linspace(0, RADIUS, NY)
+    
     X, Y = jnp.meshgrid(x, y, indexing='ij')
 
-    dx = 2 / (NX - 1)
-    dy = 2 / (NY - 1)
+    dx = LENGTH / (NX - 1)
+    dy = RADIUS / (NY - 1)
     
     # Initialize variable matricies 
     
