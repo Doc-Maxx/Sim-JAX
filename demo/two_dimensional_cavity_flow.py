@@ -13,7 +13,7 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 500
+N_ITERATIONS = 200
 REYNOLDS_NUMBER = 100
 
 NX = 41 
@@ -70,8 +70,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
     
     # Define loop init condition
     init = [pressure, pressure, horizontal_velocity, vertical_velocity, rho,
-            dt, dx, dy, get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure),
-            norm_target]
+            dt, dx, dy, pressure, norm_target]
     
     # We are setting up a JAX while loop, so we'll need a condition and body function
     def condition(loop_state):
@@ -95,6 +94,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         #unpack loop_state
         pressure, pressure_copy, horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part, norm_target = loop_state
         # compute pressure update
+        velocity_dependent_part = get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part)
         pressure, pressure_copy = get_pressure_update(pressure, dx, dy, velocity_dependent_part)
         #jax.debug.print("Pressure body loop : {x}", x =  pressure )
         # repack loop_state
@@ -226,5 +226,6 @@ def main():
     # Display the plot
     plt.show()
             
+    
 if __name__=="__main__":
     main()
