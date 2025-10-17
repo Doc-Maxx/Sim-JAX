@@ -13,7 +13,7 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 500
+N_ITERATIONS = 50
 REYNOLDS_NUMBER = 100
 
 NX = 41 
@@ -69,7 +69,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         return pressure, pressure_copy
     
     # Define loop init condition
-    init = [pressure, pressure, horizontal_velocity, vertical_velocity, rho,
+    init = [pressure, pressure+1, horizontal_velocity, vertical_velocity, rho,
             dt, dx, dy, pressure, norm_target]
     
     # We are setting up a JAX while loop, so we'll need a condition and body function
@@ -95,7 +95,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
         pressure, pressure_copy, horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part, norm_target = loop_state
         # compute pressure update
         velocity_dependent_part = get_velocity_dependent_part(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, velocity_dependent_part)
-        jax.debug.print("{x}", x = velocity_dependent_part)
+        #jax.debug.print("{x}", x = velocity_dependent_part)
         pressure, pressure_copy = get_pressure_update(pressure, dx, dy, velocity_dependent_part)
         #jax.debug.print("Pressure body loop : {x}", x =  pressure )
         # repack loop_state
@@ -150,7 +150,7 @@ def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx
 def main():
     jax.config.update("jax_enable_x64", True)
     
-    kinematic_viscosity = 0.01
+    kinematic_viscosity = 0.001
     
     x = jnp.linspace(0, LENGTH, NX)
     y = jnp.linspace(0, RADIUS, NY)
@@ -200,7 +200,7 @@ def main():
         vertical_velocity = vertical_velocity.at[:, -1].set(0)
         
         pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
-        
+        #jax.debug.print("{x}", x =  vertical_velocity )
         
     # Create figure and set dpi and figure size
     fig = plt.figure(figsize=(11,7), dpi=100)
