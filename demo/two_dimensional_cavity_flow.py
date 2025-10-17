@@ -13,7 +13,7 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 50
+N_ITERATIONS = 500
 REYNOLDS_NUMBER = 100
 
 NX = 41 
@@ -110,6 +110,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
     return result[0]
 
 # Now we need to compute the velocity updates
+@jit
 def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
@@ -127,7 +128,7 @@ def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, d
          horizontal_velocity_copy[0:-2, 1:-1])))
         )
     return horizontal_velocity
-
+@jit
 def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
@@ -206,7 +207,7 @@ def main():
     fig = plt.figure(figsize=(11,7), dpi=100)
     
     # Contourf plot for pressure field with colorbar
-    cf = plt.contourf(X, Y, pressure, alpha=0.5, cmap='turbo', levels=10)
+    cf = plt.contourf(X, Y, pressure, alpha=0.5, cmap='turbo', levels=20)
     plt.colorbar(cf, label='Pressure')
     
     # Contour plot for pressure field outlines
