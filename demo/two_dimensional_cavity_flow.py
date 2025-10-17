@@ -8,6 +8,7 @@ The results from that will be used to validate the results here.
 """
 import jax
 import jax.numpy as jnp
+from jax import jit
 from matplotlib import pyplot as plt, cm
 import cmasher as cmr
 from tqdm import tqdm
@@ -110,7 +111,6 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
     return result[0]
 
 # Now we need to compute the velocity updates
-@jit
 def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
@@ -128,7 +128,7 @@ def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, d
          horizontal_velocity_copy[0:-2, 1:-1])))
         )
     return horizontal_velocity
-@jit
+
 def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
@@ -147,7 +147,7 @@ def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx
          vertical_velocity_copy[0:-2, 1:-1])))
         )    
     return vertical_velocity
-
+@jit
 def main():
     jax.config.update("jax_enable_x64", True)
     
@@ -183,7 +183,7 @@ def main():
     vertical_velocity = vertical_velocity.at[:, -1].set(0)
     
     pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
-    
+
     for iteration_index in tqdm(range(N_ITERATIONS)):
         
         
@@ -207,7 +207,7 @@ def main():
     fig = plt.figure(figsize=(11,7), dpi=100)
     
     # Contourf plot for pressure field with colorbar
-    cf = plt.contourf(X, Y, pressure, alpha=0.5, cmap='turbo', levels=20)
+    cf = plt.contourf(X, Y, pressure, alpha=0.5, cmap='turbo', levels=10)
     plt.colorbar(cf, label='Pressure')
     
     # Contour plot for pressure field outlines
