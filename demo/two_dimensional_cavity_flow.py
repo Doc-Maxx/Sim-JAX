@@ -14,7 +14,7 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 500
+N_ITERATIONS = 50
 REYNOLDS_NUMBER = 100
 
 NX = 41 
@@ -35,7 +35,6 @@ PLOT_STEP_SKIP = 1000
 def get_kinematic_viscosity(velocity, radius, reynolds_number):
     kinematic_viscosity = velocity * 2 * radius / reynolds_number
     return kinematic_viscosity
-
 
 def pressure_solver(pressure, horizontal_velocity, vertical_velocity, 
                     rho, dt, dx, dy, norm_target):
@@ -111,6 +110,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
     return result[0]
 
 # Now we need to compute the velocity updates
+
 def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
@@ -147,7 +147,27 @@ def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx
          vertical_velocity_copy[0:-2, 1:-1])))
         )    
     return vertical_velocity
+
 @jit
+def run(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity):
+    for iteration_index in tqdm(range(N_ITERATIONS)):
+        
+        horizontal_velocity = horizonal_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
+        vertical_velocity = vertical_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
+        
+        # Boundary Conditions
+        horizontal_velocity = horizontal_velocity.at[0, :].set(0)
+        horizontal_velocity = horizontal_velocity.at[:, 0].set(0)
+        horizontal_velocity = horizontal_velocity.at[:, -1].set(0)
+        horizontal_velocity = horizontal_velocity.at[-1, :].set(C)    # set velocity on cavity lid equal to C
+        vertical_velocity = vertical_velocity.at[0, :].set(0)
+        vertical_velocity = vertical_velocity.at[-1, :].set(0)
+        vertical_velocity = vertical_velocity.at[:, 0].set(0)
+        vertical_velocity = vertical_velocity.at[:, -1].set(0)
+        
+        pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
+        #jax.debug.print("{x}", x =  vertical_velocity )
+
 def main():
     jax.config.update("jax_enable_x64", True)
     
@@ -184,25 +204,9 @@ def main():
     
     pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
 
-    for iteration_index in tqdm(range(N_ITERATIONS)):
+    run(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
         
-        
-        horizontal_velocity = horizonal_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
-        vertical_velocity = vertical_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
-        
-        # Boundary Conditions
-        horizontal_velocity = horizontal_velocity.at[0, :].set(0)
-        horizontal_velocity = horizontal_velocity.at[:, 0].set(0)
-        horizontal_velocity = horizontal_velocity.at[:, -1].set(0)
-        horizontal_velocity = horizontal_velocity.at[-1, :].set(C)    # set velocity on cavity lid equal to C
-        vertical_velocity = vertical_velocity.at[0, :].set(0)
-        vertical_velocity = vertical_velocity.at[-1, :].set(0)
-        vertical_velocity = vertical_velocity.at[:, 0].set(0)
-        vertical_velocity = vertical_velocity.at[:, -1].set(0)
-        
-        pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
-        #jax.debug.print("{x}", x =  vertical_velocity )
-        
+    print(pressure)
     # Create figure and set dpi and figure size
     fig = plt.figure(figsize=(11,7), dpi=100)
     
