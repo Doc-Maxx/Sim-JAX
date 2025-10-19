@@ -14,7 +14,7 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 50
+N_ITERATIONS = 500
 REYNOLDS_NUMBER = 100
 
 NX = 41 
