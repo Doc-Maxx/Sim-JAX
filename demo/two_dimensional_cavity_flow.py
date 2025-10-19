@@ -36,6 +36,7 @@ def get_kinematic_viscosity(velocity, radius, reynolds_number):
     kinematic_viscosity = velocity * 2 * radius / reynolds_number
     return kinematic_viscosity
 
+@jit
 def pressure_solver(pressure, horizontal_velocity, vertical_velocity, 
                     rho, dt, dx, dy, norm_target):
     
@@ -110,7 +111,7 @@ def pressure_solver(pressure, horizontal_velocity, vertical_velocity,
     return result[0]
 
 # Now we need to compute the velocity updates
-
+@jit
 def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
@@ -128,7 +129,7 @@ def horizonal_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, d
          horizontal_velocity_copy[0:-2, 1:-1])))
         )
     return horizontal_velocity
-
+@jit
 def vertical_velocity_update(horizontal_velocity, vertical_velocity, rho, dt, dx, dy, pressure, kinematic_viscosity):
     horizontal_velocity_copy = horizontal_velocity.copy()
     vertical_velocity_copy = vertical_velocity.copy()
@@ -166,7 +167,9 @@ def run(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinem
         vertical_velocity = vertical_velocity.at[:, -1].set(0)
         
         pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
-        #jax.debug.print("{x}", x =  vertical_velocity )
+        #jax.debug.print("{x}", x =  pressure )
+        
+    return pressure, horizontal_velocity, vertical_velocity
 
 def main():
     jax.config.update("jax_enable_x64", True)
@@ -182,7 +185,6 @@ def main():
     dy = RADIUS / (NY - 1)
     
     # Initialize variable matricies 
-    
     pressure = jnp.zeros((NX,NY))
     horizontal_velocity = jnp.zeros((NX,NY))
     vertical_velocity = jnp.zeros((NX,NY))
@@ -204,7 +206,9 @@ def main():
     
     pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
 
-    run(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
+    pressure, horizontal_velocity, vertical_velocity = run(
+        horizontal_velocity, vertical_velocity, RHO,
+        DT, dx, dy,  pressure, kinematic_viscosity)
         
     print(pressure)
     # Create figure and set dpi and figure size
