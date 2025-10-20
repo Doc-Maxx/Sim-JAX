@@ -229,17 +229,17 @@ def main():
     fig = plt.figure(figsize=(11,7), dpi=100)
     
     # Contourf plot for pressure field with colorbar
-    cf = plt.contourf(X, Y, pressure.T, alpha=0.5, cmap='turbo', levels=20)
+    cf = plt.contourf(X, Y, pressure, alpha=0.5, cmap='turbo', levels=20)
     plt.colorbar(cf, label='Pressure')
     
     # Contour plot for pressure field outlines
-    contour = plt.contour(X, Y, pressure.T, cmap='turbo', levels=10)
+    contour = plt.contour(X, Y, pressure, cmap='turbo', levels=10)
     plt.clabel(contour, inline=False, fontsize=12, colors = 'black')
     
     # Quiver plot for velocity field
     quiv = plt.quiver(X[::2, ::2], Y[::2, ::2], 
-                      vertical_velocity[::2, ::2].T, 
-                      horizontal_velocity[::2, ::2].T) 
+                      vertical_velocity[::2, ::2], 
+                      horizontal_velocity[::2, ::2]) 
     
     # Setting labels for the x and y axes
     plt.xlabel('X', fontsize=12)
