@@ -12,6 +12,9 @@ from jax import jit
 from matplotlib import pyplot as plt, cm
 import cmasher as cmr
 from tqdm import tqdm
+#numpy is needed for a final vizualization step using streamplot 
+import numpy as np
+
 
 # Define some simulation parameters
 N_ITERATIONS = 500
@@ -21,7 +24,8 @@ NX = 81
 NY = 81
 DT = 0.001
 
-LENGTH = 2
+LENGTH = 1
+RADIUS = 1
 
 
 NORM_TARGET = 1e-8
@@ -213,7 +217,7 @@ def main():
         horizontal_velocity, vertical_velocity, RHO,
         DT, dx, dy,  pressure, kinematic_viscosity)
         
-    print(pressure)
+    #print(pressure)
     # Create figure and set dpi and figure size
     fig = plt.figure(figsize=(11,7), dpi=100)
     
@@ -239,6 +243,20 @@ def main():
     
     # Display the plot
     plt.show()
+    
+    # rebuild x y X Y with numpy so stream plot works correctly.
+    x = np.linspace(0, LENGTH, NX)
+    y = np.linspace(0, RADIUS, NY)
+    
+    X, Y = np.meshgrid(x, y, indexing='ij')
+    
+    fig = plt.figure(figsize=(11, 7), dpi=100)
+    plt.contourf(X, Y, pressure, alpha=0.5, cmap=cm.coolwarm)
+    plt.colorbar()
+    #plt.contour(X, Y, p, cmap=cm.coolwarm)
+    plt.streamplot(x, y, horizontal_velocity, vertical_velocity)
+    plt.xlabel('X')
+    plt.ylabel('Y')
             
     
 if __name__=="__main__":
