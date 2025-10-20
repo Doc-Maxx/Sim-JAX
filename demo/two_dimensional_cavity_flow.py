@@ -20,8 +20,8 @@ import numpy as np
 N_ITERATIONS = 500
 REYNOLDS_NUMBER = 100
 
-NX = 81 
-NY = 81
+NX = 41 
+NY = 41
 DT = 0.001
 
 LENGTH = 1
@@ -31,7 +31,7 @@ RADIUS = 1
 NORM_TARGET = 1e-8
 RHO = 1
 
-C = 2
+C = 1
 PLOT_EVERY_N_STEPS = 100
 PLOT_STEP_SKIP = 1000
 
@@ -217,22 +217,29 @@ def main():
         horizontal_velocity, vertical_velocity, RHO,
         DT, dx, dy,  pressure, kinematic_viscosity)
         
+    
+    # rebuild x y X Y with numpy so stream plot works correctly.
+    x = np.linspace(0, LENGTH, NX)
+    y = np.linspace(0, RADIUS, NY)
+    
+    X, Y = np.meshgrid(x, y, indexing='ij')
+    
     #print(pressure)
     # Create figure and set dpi and figure size
     fig = plt.figure(figsize=(11,7), dpi=100)
     
     # Contourf plot for pressure field with colorbar
-    cf = plt.contourf(X, Y, pressure, alpha=0.5, cmap='turbo', levels=20)
+    cf = plt.contourf(X, Y, pressure.T, alpha=0.5, cmap='turbo', levels=20)
     plt.colorbar(cf, label='Pressure')
     
     # Contour plot for pressure field outlines
-    contour = plt.contour(X, Y, pressure, cmap='turbo', levels=10)
+    contour = plt.contour(X, Y, pressure.T, cmap='turbo', levels=10)
     plt.clabel(contour, inline=False, fontsize=12, colors = 'black')
     
     # Quiver plot for velocity field
     quiv = plt.quiver(X[::2, ::2], Y[::2, ::2], 
-                      vertical_velocity[::2, ::2], 
-                      horizontal_velocity[::2, ::2]) 
+                      vertical_velocity[::2, ::2].T, 
+                      horizontal_velocity[::2, ::2].T) 
     
     # Setting labels for the x and y axes
     plt.xlabel('X', fontsize=12)
@@ -244,14 +251,8 @@ def main():
     # Display the plot
     plt.show()
     
-    # rebuild x y X Y with numpy so stream plot works correctly.
-    x = np.linspace(0, LENGTH, NX)
-    y = np.linspace(0, RADIUS, NY)
-    
-    X, Y = np.meshgrid(x, y, indexing='ij')
-    
     fig = plt.figure(figsize=(11, 7), dpi=100)
-    plt.contourf(X, Y, pressure, alpha=0.5, cmap=cm.coolwarm)
+    plt.contourf(X, Y, pressure.T, alpha=0.5, cmap=cm.coolwarm)
     plt.colorbar()
     #plt.contour(X, Y, p, cmap=cm.coolwarm)
     plt.streamplot(x, y, horizontal_velocity, vertical_velocity)
