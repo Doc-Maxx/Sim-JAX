@@ -61,24 +61,27 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 25
+N_ITERATIONS = 750
 REYNOLDS_NUMBER = 100
 
-NX = 80 
-NY = 80
+NX = 21 
+NY = 81
 DT = 0.01
 
-LENGTH = 5
+LENGTH = 10
 RADIUS = 0.5
 
-NORM_TARGET = 1e-24
+NORM_TARGET = 1e-5
 RHO = 1
 
-INFLOW_VELOCITY = 1
-INLET_PRESSURE = 1
+INFLOW_VELOCITY = 0
+INLET_PRESSURE = 5
 PLOT_EVERY_N_STEPS = 100
 PLOT_STEP_SKIP = 1000
 
+def get_kinematic_viscosity(velocity, radius, reynolds_number):
+    kinematic_viscosity = velocity * 2 * radius / reynolds_number
+    return kinematic_viscosity
 
 def run(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity):
         
@@ -107,10 +110,14 @@ def run(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinem
                 (2 * (dx**2 + dy**2))- dx**2 * dy**2 / (2 * (dx**2 + dy**2)) *
                 velocity_dependent_part[1:-1,1:-1])
             #set inlet pressure
-            pressure = pressure.at[:, -1].set(pressure[:, -2]) # dp/dx = 0 at x = 2
-            pressure = pressure.at[0,:].set(pressure[1, :])   # dp/dy = 0 at y = 0
-            pressure = pressure.at[:,0].set(pressure[:, 1])   # dp/dx = 0 at x = 0
-            pressure = pressure.at[-1,:].set(0)        # p = 0 at y = 2
+            #pressure = pressure.at[:, -1].set(pressure[:, -2]) # dp/dx = 0 at x = 2
+            pressure = pressure.at[0,:].set(pressure[1, :])   # dp/dy = 0 at Bottom
+            pressure = pressure.at[-1,:].set(pressure[-2, :])   # dp/dy = 0 at 
+            pressure = pressure.at[:,0].set(INLET_PRESSURE)   # dp/dy = 0 at Bottom
+            pressure = pressure.at[:,-1].set(pressure[:, -2])   # dp/dy = 0 at TOP
+            
+            #pressure = pressure.at[:,0].set(pressure[:, 1])   # dp/dx = 0 at x = 0
+            #pressure = pressure.at[-1,:].set(0)        # p = 0 at y = 2
             #jax.debug.print("{x}", x =  pressure )
             return pressure, pressure_copy
         
@@ -129,7 +136,7 @@ def run(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinem
             Compute "norm" to compare the new pressure matrix to the previous one
             This solver uses a relaxational method. Each step makes finer adjustments|
             to the pressure field. Once we reach an abritrarily small difference
-            between each step, we send the signal to terminate the loop.
+            between each step, we send the signal to terminate the loop.|
             '''
             norm = (jnp.sum(jnp.abs(pressure[:]-pressure_copy[:])) / (jnp.sum(jnp.abs(pressure_copy[:]))+1e-8 ))
             #jax.debug.print("{x}", x=norm)
@@ -202,14 +209,14 @@ def run(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinem
         vertical_velocity = vertical_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
         
         # Boundary Conditions
-        horizontal_velocity = horizontal_velocity.at[0, :].set(0)
-        horizontal_velocity = horizontal_velocity.at[:, 0].set(0)
-        horizontal_velocity = horizontal_velocity.at[:, -1].set(0)
-        horizontal_velocity = horizontal_velocity.at[-1, :].set(C)    # set velocity on cavity lid equal to C
+        horizontal_velocity = horizontal_velocity.at[0, :].set(0) # Set Top to Zero
+        #horizontal_velocity = horizontal_velocity.at[:, 0].set() # Set Left to 1
+        # horizontal_velocity = horizontal_velocity.at[:, -1].set(0) # Set Right to be free, so no update
+        horizontal_velocity = horizontal_velocity.at[-1, :].set(0) # Set Bottom to Zero
         vertical_velocity = vertical_velocity.at[0, :].set(0)
         vertical_velocity = vertical_velocity.at[-1, :].set(0)
         vertical_velocity = vertical_velocity.at[:, 0].set(0)
-        vertical_velocity = vertical_velocity.at[:, -1].set(0)
+        # vertical_velocity = vertical_velocity.at[:, -1].set(0) # Set Right to be free, so no update
         
         pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
         #jax.debug.print("{x}", x =  pressure )
@@ -219,7 +226,7 @@ def run(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinem
 def main():
     jax.config.update("jax_enable_x64", True)
     
-    kinematic_viscosity = get_kinematic_viscosity(C, LENGTH, REYNOLDS_NUMBER)
+    kinematic_viscosity = get_kinematic_viscosity(INFLOW_VELOCITY, RADIUS, REYNOLDS_NUMBER)
     
     x = jnp.linspace(0, LENGTH, NX)
     y = jnp.linspace(0, RADIUS, NY)
@@ -235,19 +242,20 @@ def main():
     vertical_velocity = jnp.zeros((NX,NY))
     
     #set inlet pressure
-    pressure = pressure.at[:, -1].set(pressure[:, -2]) # dp/dx = 0 at x = 2
-    pressure = pressure.at[0,:].set(pressure[1, :])   # dp/dy = 0 at y = 0
-    pressure = pressure.at[:,0].set(pressure[:, 1])   # dp/dx = 0 at x = 0
-    pressure = pressure.at[-1,:].set(0)        # p = 0 at y = 2
+    pressure = pressure.at[0,:].set(pressure[1, :])   # dp/dy = 0 at Bottom
+    pressure = pressure.at[-1,:].set(pressure[-2, :])   # dp/dy = 0 at 
+    pressure = pressure.at[:,0].set(INLET_PRESSURE)   # dp/dy = 0 at Bottom  # dp/dy = 0 at Bottom
+    pressure = pressure.at[:,-1].set(pressure[:, -2])   # dp/dy = 0 at TOP
     
-    horizontal_velocity = horizontal_velocity.at[0, :].set(0)
-    horizontal_velocity = horizontal_velocity.at[:, 0].set(0)
-    horizontal_velocity = horizontal_velocity.at[:, -1].set(0)
-    horizontal_velocity = horizontal_velocity.at[-1, :].set(0)    
+    # Boundary Conditions
+    horizontal_velocity = horizontal_velocity.at[0, :].set(0) # Set Top to Zero
+    #horizontal_velocity = horizontal_velocity.at[:, 0].set() # Set Left to 1
+    # horizontal_velocity = horizontal_velocity.at[:, -1].set(0) # Set Right to be free, so no update
+    horizontal_velocity = horizontal_velocity.at[-1, :].set(0) # Set Bottom to Zero
     vertical_velocity = vertical_velocity.at[0, :].set(0)
     vertical_velocity = vertical_velocity.at[-1, :].set(0)
     vertical_velocity = vertical_velocity.at[:, 0].set(0)
-    vertical_velocity = vertical_velocity.at[:, -1].set(0)
+    # vertical_velocity = vertical_velocity.at[:, -1].set(0) # Set Right to be free, so no update
     
     
 
@@ -259,11 +267,11 @@ def main():
     fig = plt.figure(figsize=(11,7), dpi=100)
     
     # Contourf plot for pressure field with colorbar
-    cf = plt.contourf(X, Y, pressure, alpha=0.5, cmap='turbo', levels=10)
+    cf = plt.contourf(X, Y, pressure, alpha=0.5, cmap='turbo', levels=5)
     plt.colorbar(cf, label='Pressure')
     
     # Contour plot for pressure field outlines
-    contour = plt.contour(X, Y, pressure, cmap='turbo', levels=10)
+    contour = plt.contour(X, Y, pressure, cmap='turbo', levels=5)
     plt.clabel(contour, inline=False, fontsize=12, colors = 'black')
     
     # Quiver plot for velocity field
