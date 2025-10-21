@@ -12,7 +12,7 @@ from jax import jit
 from matplotlib import pyplot as plt, cm
 from tqdm import tqdm
 
-N_ITERATIONS = 4000
+N_ITERATIONS = 6000
 
 NX = 41
 NY = 41
@@ -46,10 +46,8 @@ def update_Ez(Ez, Hx, Hy, Eps_i, Eps_r, omega, dt, dx, dy):
         )
     return Ez
 
-
 def main():
-    total_time = N_ITERATIONS * DT
-
+    
     x = jnp.linspace(0, LENGTH_X, NX)
     y = jnp.linspace(0, LENGTH_Y, NY)
     
@@ -62,14 +60,14 @@ def main():
     Hy = jnp.zeros((NX,NY))
     Ez = jnp.zeros((NX,NY))
     
-    Eps_i = jnp.zeros((NX,NY))  # No decay in vacuum 
-    Eps_r = jnp.ones((NX,NY)) * 4
+    Eps_i = jnp.ones((NX,NY)) * 0  # Decay
+    Eps_r = jnp.ones((NX,NY)) * 1
     
-    omega = 0 # no decay, so we don't need to set this to anything right now
+    omega = 0.1 # no decay, so we don't need to set this to anything right now
     
     n_iter = 0 # Itneration number and manipulate the source
     
-    source = jnp.sin(2 * jnp.pi * DT * n_iter )
+    source = jnp.sin(2 * jnp.pi * DT * n_iter * omega)
     Ez = Ez.at[-2,NX//3:-NX//3+1].set(source)
     
     fig = plt.figure(figsize=(11,7), dpi=100)
@@ -83,13 +81,29 @@ def main():
         #print(Hx)
         #Enforce Boundary
         
+        Hx = Hx.at[:,0].set(0)
+        Hx = Hx.at[:,-1].set(0)
+        Hx = Hx.at[0,:].set(0)
+        Hx = Hx.at[-1,:].set(0)
+        
+        Hy = Hy.at[:,0].set(0)
+        Hy = Hy.at[:,-1].set(0)
+        Hy = Hy.at[0,:].set(0)
+        Hy = Hy.at[-1,:].set(0)
+        
         #Update E field
         
         Ez = update_Ez(Ez, Hx, Hy, Eps_i, Eps_r, omega, DT, dx, dy)
         
         #Enforce Boundary and Source
-        source = jnp.sin(2 * jnp.pi * DT * n_iter ) 
-        Ez = Ez.at[-1,NX//3:-NX//3+1].set(source)
+        source = jnp.sin(2 * jnp.pi * DT * n_iter * omega ) 
+        Ez = Ez.at[-2,NX//3:-NX//3].set(source)
+        
+        Ez = Ez.at[:,0].set(0)
+        Ez = Ez.at[:,-1].set(0)
+        Ez = Ez.at[0,:].set(0)
+        Ez = Ez.at[-1,:].set(0)
+        
         #print(Ez)
         n_iter += 1
         
