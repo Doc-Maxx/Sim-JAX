@@ -61,21 +61,22 @@ import cmasher as cmr
 from tqdm import tqdm
 
 # Define some simulation parameters
-N_ITERATIONS = 750
-REYNOLDS_NUMBER = 100
+N_ITERATIONS = 250
+REYNOLDS_NUMBER = 200
 
-NX = 21 
-NY = 81
-DT = 0.01
+NX = 31 
+NY = 121
+DT = 0.001
 
 LENGTH = 10
-RADIUS = 0.5
+RADIUS = 1
 
-NORM_TARGET = 1e-5
+NORM_TARGET = 1e-7
 RHO = 1
 
 INFLOW_VELOCITY = 0
 INLET_PRESSURE = 5
+OUTLET_PRESSURE = 1
 PLOT_EVERY_N_STEPS = 100
 PLOT_STEP_SKIP = 1000
 
@@ -111,10 +112,8 @@ def run(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinem
                 velocity_dependent_part[1:-1,1:-1])
             #set inlet pressure
             #pressure = pressure.at[:, -1].set(pressure[:, -2]) # dp/dx = 0 at x = 2
-            pressure = pressure.at[0,:].set(pressure[1, :])   # dp/dy = 0 at Bottom
-            pressure = pressure.at[-1,:].set(pressure[-2, :])   # dp/dy = 0 at 
-            pressure = pressure.at[:,0].set(INLET_PRESSURE)   # dp/dy = 0 at Bottom
-            pressure = pressure.at[:,-1].set(pressure[:, -2])   # dp/dy = 0 at TOP
+            pressure = pressure.at[0,:].set(INLET_PRESSURE)   # dp/dy = 0 at Bottom
+            pressure = pressure.at[-1,:].set(OUTLET_PRESSURE)   # dp/dy = 0 at TOP
             
             #pressure = pressure.at[:,0].set(pressure[:, 1])   # dp/dx = 0 at x = 0
             #pressure = pressure.at[-1,:].set(0)        # p = 0 at y = 2
@@ -209,13 +208,13 @@ def run(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinem
         vertical_velocity = vertical_velocity_update(horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, pressure, kinematic_viscosity)
         
         # Boundary Conditions
-        horizontal_velocity = horizontal_velocity.at[0, :].set(0) # Set Top to Zero
+        horizontal_velocity = horizontal_velocity.at[:,0].set(0) # Set Top to Zero
         #horizontal_velocity = horizontal_velocity.at[:, 0].set() # Set Left to 1
         # horizontal_velocity = horizontal_velocity.at[:, -1].set(0) # Set Right to be free, so no update
-        horizontal_velocity = horizontal_velocity.at[-1, :].set(0) # Set Bottom to Zero
+        horizontal_velocity = horizontal_velocity.at[:, -1].set(0) # Set Bottom to Zero
         vertical_velocity = vertical_velocity.at[0, :].set(0)
-        vertical_velocity = vertical_velocity.at[-1, :].set(0)
         vertical_velocity = vertical_velocity.at[:, 0].set(0)
+        vertical_velocity = vertical_velocity.at[:, -1].set(0)
         # vertical_velocity = vertical_velocity.at[:, -1].set(0) # Set Right to be free, so no update
         
         pressure = pressure_solver(pressure, horizontal_velocity, vertical_velocity, RHO, DT, dx, dy, NORM_TARGET)
@@ -242,20 +241,18 @@ def main():
     vertical_velocity = jnp.zeros((NX,NY))
     
     #set inlet pressure
-    pressure = pressure.at[0,:].set(pressure[1, :])   # dp/dy = 0 at Bottom
-    pressure = pressure.at[-1,:].set(pressure[-2, :])   # dp/dy = 0 at 
-    pressure = pressure.at[:,0].set(INLET_PRESSURE)   # dp/dy = 0 at Bottom  # dp/dy = 0 at Bottom
-    pressure = pressure.at[:,-1].set(pressure[:, -2])   # dp/dy = 0 at TOP
+    pressure = pressure.at[0,:].set(INLET_PRESSURE)   # dp/dy = 0 at Bottom
+    pressure = pressure.at[-1,:].set(OUTLET_PRESSURE)   # dp/dy = 0 at TOP
     
     # Boundary Conditions
-    horizontal_velocity = horizontal_velocity.at[0, :].set(0) # Set Top to Zero
+
+    horizontal_velocity = horizontal_velocity.at[:,0].set(0) # Set Top to Zero
     #horizontal_velocity = horizontal_velocity.at[:, 0].set() # Set Left to 1
     # horizontal_velocity = horizontal_velocity.at[:, -1].set(0) # Set Right to be free, so no update
-    horizontal_velocity = horizontal_velocity.at[-1, :].set(0) # Set Bottom to Zero
+    horizontal_velocity = horizontal_velocity.at[:, -1].set(0) # Set Bottom to Zero
     vertical_velocity = vertical_velocity.at[0, :].set(0)
-    vertical_velocity = vertical_velocity.at[-1, :].set(0)
     vertical_velocity = vertical_velocity.at[:, 0].set(0)
-    # vertical_velocity = vertical_velocity.at[:, -1].set(0) # Set Right to be free, so no update
+    vertical_velocity = vertical_velocity.at[:, -1].set(0)
     
     
 
